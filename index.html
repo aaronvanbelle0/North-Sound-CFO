@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearBooks CFO — Practice Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --navy:       #0f2340;
+  --navy-deep:  #081528;
+  --navy-mid:   #1a3a5c;
+  --navy-lt:    #254d7a;
+  --navy-pale:  #e8edf5;
+  --navy-faint: #f2f5f9;
+  --accent:     #1a6eb5;
+  --accent-lt:  #2d86d4;
+  --accent-pale:#ddeeff;
+  --white:      #ffffff;
+  --off-white:  #f7f9fb;
+  --green:      #1a6b3a;
+  --green-pale: #e6f4ec;
+  --red:        #8c2020;
+  --red-pale:   #fde8e8;
+  --amber:      #92600a;
+  --amber-pale: #fdf3e0;
+  --border:     rgba(15,35,64,0.10);
+  --border-lt:  rgba(15,35,64,0.06);
+  --shadow:     0 4px 20px rgba(15,35,64,0.09);
+  --shadow-lg:  0 12px 44px rgba(15,35,64,0.14);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:14px;height:100%;}
+body{font-family:'DM Sans',sans-serif;background:var(--navy-faint);color:var(--navy);height:100%;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ═══ TOPBAR ═══ */
+.topbar{
+  background:var(--navy-deep);height:56px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;border-bottom:1px solid rgba(255,255,255,0.06);
+  position:relative;z-index:200;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-mark{flex-shrink:0;}
+.app-name{font-family:'Playfair Display',serif;font-size:17px;color:#fff;font-weight:700;letter-spacing:-0.2px;}
+.app-tag{font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-left:2px;}
+.topbar-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;}
+.active-client-pill{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);
+  border-radius:20px;padding:5px 14px;cursor:pointer;transition:all 0.15s;
+}
+.active-client-pill:hover{background:rgba(255,255,255,0.12);}
+.active-client-name{font-size:12.5px;font-weight:600;color:#fff;}
+.active-client-industry{font-size:10.5px;color:rgba(255,255,255,0.4);}
+.pill-chevron{color:rgba(255,255,255,0.35);}
+.no-client-text{font-size:12px;color:rgba(255,255,255,0.35);font-style:italic;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.topbar-period{font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.05);padding:3px 9px;border-radius:4px;border:1px solid rgba(255,255,255,0.07);}
+
+/* ═══ MAIN SHELL ═══ */
+.shell{display:flex;flex:1;min-height:0;overflow:hidden;}
+
+/* ═══ LEFT SIDEBAR — CLIENT ROSTER ═══ */
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--navy);
+  display:flex;flex-direction:column;
+  border-right:1px solid rgba(255,255,255,0.06);
+  overflow:hidden;
+}
+.sidebar-header{
+  padding:16px 16px 12px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  flex-shrink:0;
+}
+.sidebar-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sidebar-title{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);font-weight:600;}
+.btn-add-client{
+  display:flex;align-items:center;gap:5px;
+  background:var(--accent);color:#fff;border:none;
+  padding:5px 10px;border-radius:5px;font-family:'DM Sans',sans-serif;
+  font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;
+}
+.btn-add-client:hover{background:var(--accent-lt);}
+.client-search{
+  width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);
+  color:#fff;padding:7px 10px;border-radius:6px;font-family:'DM Sans',sans-serif;
+  font-size:12px;outline:none;transition:border-color 0.15s;
+}
+.client-search::placeholder{color:rgba(255,255,255,0.25);}
+.client-search:focus{border-color:var(--accent-lt);}
+
+.client-list{flex:1;overflow-y:auto;padding:8px 0;}
+.client-list::-webkit-scrollbar{width:3px;}
+.client-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+
+.client-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;cursor:pointer;transition:all 0.15s;
+  border-left:2px solid transparent;gap:8px;
+}
+.client-item:hover{background:rgba(255,255,255,0.04);border-left-color:rgba(255,255,255,0.15);}
+.client-item.active{background:rgba(26,110,181,0.15);border-left-color:var(--accent-lt);}
+.client-item-left{flex:1;min-width:0;}
+.client-item-name{font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.client-item.active .client-item-name{color:#fff;}
+.client-item-industry{font-size:10.5px;color:rgba(255,255,255,0.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.client-status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dot-ready{background:#1a6b3a;}
+.dot-pending{background:rgba(255,255,255,0.2);}
+
+.empty-roster{
+  padding:32px 16px;text-align:center;
+  color:rgba(255,255,255,0.25);font-size:12px;line-height:1.6;
+}
+
+.sidebar-footer{
+  padding:12px 16px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0;
+}
+.sidebar-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.sidebar-stat{background:rgba(255,255,255,0.05);border-radius:6px;padding:8px 10px;text-align:center;}
+.sidebar-stat-val{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;line-height:1;}
+.sidebar-stat-label{font-size:9px;color:rgba(255,255,255,0.3);margin-top:3px;letter-spacing:0.3px;}
+
+/* ═══ RIGHT MAIN AREA ═══ */
+.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+
+/* Sub-nav tabs */
+.subnav{
+  background:#fff;border-bottom:1px solid var(--border-lt);
+  display:flex;align-items:center;gap:0;padding:0 24px;
+  flex-shrink:0;height:44px;
+}
+.subnav-tab{
+  display:flex;align-items:center;gap:6px;
+  padding:0 16px;height:44px;font-size:12.5px;font-weight:500;
+  color:#6b8097;cursor:pointer;border-bottom:2px solid transparent;
+  transition:all 0.15s;white-space:nowrap;
+}
+.subnav-tab:hover{color:var(--navy);}
+.subnav-tab.active{color:var(--navy);border-bottom-color:var(--navy);font-weight:600;}
+.subnav-tab svg{opacity:0.6;}
+.subnav-tab.active svg{opacity:1;}
+.subnav-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+
+/* Content area */
+.content{flex:1;overflow-y:auto;padding:24px 28px;}
+.content::-webkit-scrollbar{width:4px;}
+.content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ═══ VIEW PANELS ═══ */
+.view{display:none;}
+.view.active{display:block;}
+
+/* ═══ WELCOME / NO CLIENT ═══ */
+.welcome{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:400px;text-align:center;gap:20px;
+}
+.welcome-icon{width:64px;height:64px;border-radius:16px;background:var(--navy-faint);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto;}
+.welcome-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);}
+.welcome-sub{font-size:14px;color:#6b8097;max-width:380px;line-height:1.7;font-weight:300;}
+
+/* ═══ UPLOAD VIEW ═══ */
+.upload-header-row{margin-bottom:24px;}
+.view-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.view-sub{font-size:13px;color:#6b8097;}
+
+.upload-zones{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+.upload-zone{
+  background:#fff;border:2px dashed var(--border);border-radius:10px;
+  padding:24px 18px;text-align:center;cursor:pointer;
+  transition:all 0.2s;position:relative;
+}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-pale);}
+.upload-zone.has-file{border-color:var(--green);border-style:solid;background:var(--green-pale);}
+.upload-zone.dragging{border-color:var(--accent);background:var(--accent-pale);transform:scale(1.02);}
+.file-input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.zone-icon{width:40px;height:40px;border-radius:9px;background:var(--navy-faint);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+.zone-icon svg{color:var(--navy-mid);}
+.upload-zone.has-file .zone-icon{background:var(--green-pale);border-color:rgba(26,107,58,0.2);}
+.upload-zone.has-file .zone-icon svg{color:var(--green);}
+.zone-title{font-weight:600;font-size:13.5px;color:var(--navy);margin-bottom:5px;}
+.zone-desc{font-size:11.5px;color:#6b8097;line-height:1.5;margin-bottom:10px;}
+.zone-types{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6b8097;}
+.zone-file-name{margin-top:8px;font-size:11px;color:var(--green);font-weight:600;display:none;}
+.upload-zone.has-file .zone-file-name{display:block;}
+
+.upload-action-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+
+.qb-instructions{background:#fff;border:1px solid var(--border-lt);border-radius:10px;padding:18px 20px;}
+.qb-instructions-title{font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.5px;margin-bottom:12px;}
+.qb-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.qb-step{padding:12px 14px;background:var(--navy-faint);border-radius:8px;border:1px solid var(--border-lt);}
+.qb-step-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--accent);font-weight:600;letter-spacing:1px;margin-bottom:5px;}
+.qb-step-title{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:3px;}
+.qb-step-desc{font-size:11px;color:#6b8097;line-height:1.5;}
+
+/* ═══ DASHBOARD VIEW ═══ */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi-card{background:#fff;border:1px solid var(--border-lt);border-radius:11px;padding:16px 18px;position:relative;overflow:hidden;transition:box-shadow 0.2s;}
+.kpi-card:hover{box-shadow:var(--shadow);}
+.kpi-label{font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:#6b8097;margin-bottom:8px;font-weight:600;}
+.kpi-value{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);line-height:1;margin-bottom:6px;}
+.kpi-delta{font-size:11px;}
+.kpi-delta.up{color:var(--green);}
+.kpi-delta.down{color:var(--red);}
+.kpi-delta.neutral{color:#6b8097;}
+.kpi-bar{position:absolute;bottom:0;left:0;right:0;height:3px;}
+
+.two-col{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;margin-bottom:16px;}
+.full-col{margin-bottom:16px;}
+
+.card{background:#fff;border:1px solid var(--border-lt);border-radius:11px;padding:18px 20px;}
+.card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--navy);margin-bottom:3px;}
+.card-sub{font-size:11px;color:#6b8097;margin-bottom:14px;}
+.chart-wrap{height:180px;position:relative;}
+
+/* AI card */
+.ai-card{background:var(--navy-deep);border-radius:11px;padding:20px 24px;margin-bottom:16px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.06);}
+.ai-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-lt));}
+.ai-label{font-size:8.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent-lt);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.ai-intro{color:rgba(255,255,255,0.82);font-size:13px;line-height:1.8;font-weight:300;margin-bottom:16px;}
+.ai-blocks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.ai-block{background:rgba(255,255,255,0.05);border-radius:7px;padding:12px 14px;}
+.ai-block-title{font-size:8.5px;letter-spacing:2px;text-transform:uppercase;color:var(--accent-lt);margin-bottom:7px;font-weight:600;}
+.ai-block-text{color:rgba(255,255,255,0.65);font-size:11.5px;line-height:1.7;}
+.ai-placeholder{color:rgba(255,255,255,0.25);font-size:13px;text-align:center;padding:16px 0;font-style:italic;}
+
+/* Tables */
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:#6b8097;text-align:left;padding:0 0 8px;border-bottom:1px solid var(--border);font-weight:600;}
+.data-table td{padding:9px 0;border-bottom:1px solid var(--border-lt);font-size:12px;vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9.5px;font-weight:700;}
+.pill-red{background:var(--red-pale);color:var(--red);}
+.pill-amber{background:var(--amber-pale);color:var(--amber);}
+.pill-green{background:var(--green-pale);color:var(--green);}
+
+/* Benchmark */
+.benchmark-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-lt);}
+.benchmark-row:last-child{border-bottom:none;}
+.b-label{font-size:12.5px;color:var(--navy);}
+.b-right{display:flex;align-items:center;gap:12px;}
+.b-yours{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--navy);}
+.b-industry{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#6b8097;}
+.b-flag{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.flag-good{background:var(--green-pale);color:var(--green);}
+.flag-warn{background:var(--amber-pale);color:var(--amber);}
+.flag-bad{background:var(--red-pale);color:var(--red);}
+
+/* ═══ NOTES VIEW ═══ */
+.notes-view{display:flex;flex-direction:column;gap:16px;}
+.notes-area{
+  width:100%;min-height:280px;background:#fff;border:1.5px solid var(--border);
+  border-radius:10px;padding:16px;font-family:'DM Sans',sans-serif;
+  font-size:13.5px;color:var(--navy);line-height:1.75;resize:vertical;outline:none;
+  transition:border-color 0.2s;
+}
+.notes-area:focus{border-color:var(--accent);}
+.notes-meta{font-size:11px;color:#6b8097;}
+
+/* ═══ PDF VIEW ═══ */
+.pdf-preview-wrap{background:#fff;border:1px solid var(--border);border-radius:11px;overflow:hidden;box-shadow:var(--shadow);}
+.pdf-toolbar{background:var(--navy-faint);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;}
+.pdf-dots{display:flex;gap:5px;}
+.pdf-dot{width:10px;height:10px;border-radius:50%;}
+.pdf-content{padding:28px 32px;font-size:11.5px;}
+.pdf-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--navy);}
+.pdf-co-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--navy);}
+.pdf-co-period{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#6b8097;margin-top:2px;}
+.pdf-brand{text-align:right;}
+.pdf-brand-name{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--navy);}
+.pdf-brand-tag{font-size:8.5px;color:#6b8097;letter-spacing:1px;text-transform:uppercase;}
+.pdf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.pdf-kpi{background:var(--navy-faint);border-radius:5px;padding:10px 12px;border:1px solid var(--border-lt);}
+.pdf-kpi-l{font-size:7.5px;letter-spacing:1px;text-transform:uppercase;color:#6b8097;margin-bottom:3px;}
+.pdf-kpi-v{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--navy);line-height:1;}
+.pdf-kpi-d{font-size:8.5px;margin-top:2px;}
+.pdf-kpi-d.up{color:var(--green);}
+.pdf-kpi-d.down{color:var(--red);}
+.pdf-section-title{font-family:'Playfair Display',serif;font-size:12px;font-weight:700;color:var(--navy);padding-bottom:5px;border-bottom:2px solid var(--accent);margin:14px 0 9px;}
+.pdf-narrative{background:var(--navy-faint);border-left:3px solid var(--navy);padding:11px 13px;border-radius:0 5px 5px 0;font-size:10.5px;line-height:1.7;color:#4a5568;margin-bottom:12px;}
+.pdf-two{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:12px;}
+.pdf-box{background:var(--navy-faint);border-radius:5px;padding:11px 13px;border:1px solid var(--border-lt);}
+.pdf-box-t{font-size:7.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--navy);font-weight:700;margin-bottom:7px;}
+.pdf-item{font-size:10px;color:#4a5568;padding:3px 0;border-bottom:1px solid var(--border-lt);display:flex;gap:5px;line-height:1.4;}
+.pdf-item::before{content:'–';color:var(--accent);flex-shrink:0;}
+.pdf-item:last-child{border-bottom:none;}
+.pdf-table{width:100%;border-collapse:collapse;font-size:10px;}
+.pdf-table th{background:var(--navy);color:#fff;padding:5px 8px;text-align:left;font-size:7.5px;letter-spacing:0.8px;text-transform:uppercase;font-weight:500;}
+.pdf-table td{padding:6px 8px;border-bottom:1px solid var(--border-lt);}
+.pdf-table tr:nth-child(even) td{background:var(--navy-faint);}
+.pdf-footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--border-lt);display:flex;justify-content:space-between;font-size:8px;color:#6b8097;}
+.pdf-risk-high{color:var(--red);font-weight:700;}
+.pdf-risk-med{color:var(--amber);font-weight:600;}
+.pdf-risk-low{color:var(--green);font-weight:600;}
+
+/* ═══ EMAIL VIEW ═══ */
+.email-card{background:#fff;border:1px solid var(--border-lt);border-radius:11px;overflow:hidden;margin-bottom:16px;}
+.email-header{background:var(--navy);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+.email-header-label{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent-lt);font-weight:600;}
+.email-meta{padding:14px 20px;border-bottom:1px solid var(--border-lt);}
+.email-field{display:flex;gap:10px;font-size:12.5px;margin-bottom:4px;}
+.email-field:last-child{margin-bottom:0;}
+.email-field-label{color:#6b8097;font-weight:600;min-width:55px;font-size:11.5px;}
+.email-body{width:100%;border:none;padding:18px 20px;font-family:'DM Sans',sans-serif;font-size:13.5px;line-height:1.8;color:var(--navy);min-height:260px;resize:vertical;outline:none;}
+
+/* ═══ ADD CLIENT MODAL ═══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(8,21,40,0.6);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.active{display:flex;}
+.modal{background:#fff;border-radius:14px;width:440px;max-width:92vw;box-shadow:var(--shadow-lg);overflow:hidden;}
+.modal-header{background:var(--navy);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
+.modal-close{background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:20px;line-height:1;padding:0;transition:color 0.15s;}
+.modal-close:hover{color:#fff;}
+.modal-body{padding:24px;}
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:10.5px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#6b8097;margin-bottom:6px;}
+.form-input{
+  width:100%;padding:11px 14px;background:var(--navy-faint);border:1.5px solid var(--border);
+  border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--navy);
+  outline:none;transition:border-color 0.2s;
+}
+.form-input:focus{border-color:var(--accent);}
+.form-select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' fill='none'%3E%3Cpath d='M1 1l4 5 4-5' stroke='%236b8097' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-color:var(--navy-faint);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-footer{padding:16px 24px;background:var(--navy-faint);border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;}
+
+/* ═══ BUTTONS ═══ */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;}
+.btn-navy{background:var(--navy);color:#fff;}
+.btn-navy:hover{background:var(--navy-mid);transform:translateY(-1px);}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:var(--accent-lt);transform:translateY(-1px);}
+.btn-outline{background:transparent;color:var(--navy);border:1.5px solid var(--border);}
+.btn-outline:hover{border-color:var(--navy);background:var(--navy-faint);}
+.btn-white{background:#fff;color:var(--navy);border:1.5px solid var(--border);}
+.btn-white:hover{border-color:var(--navy);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:#1e7d44;}
+.btn:disabled{opacity:0.5;cursor:wait;transform:none !important;}
+.btn-sm{padding:7px 14px;font-size:12px;}
+
+/* Loading spinner inline */
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Await placeholder */
+.await{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px;text-align:center;gap:10px;color:#6b8097;border:1.5px dashed var(--border);border-radius:10px;background:#fff;min-height:140px;}
+.await p{font-size:12.5px;line-height:1.6;max-width:280px;}
+
+/* Overlay */
+.loading-overlay{position:fixed;inset:0;background:rgba(8,21,40,0.55);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+.loading-overlay.active{display:flex;}
+.loading-box{background:#fff;border-radius:14px;padding:36px 44px;text-align:center;box-shadow:var(--shadow-lg);}
+.loading-spinner{width:44px;height:44px;border:3px solid var(--accent-pale);border-top-color:var(--accent);border-radius:50%;animation:spin 0.85s linear infinite;margin:0 auto 18px;}
+.loading-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.loading-sub{font-size:12px;color:#6b8097;}
+
+/* Scrollable content */
+.content{flex:1;overflow-y:auto;}
+.content::-webkit-scrollbar{width:4px;}
+.content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- ═══ ADD CLIENT MODAL ═══ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add New Client</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Company Name *</label>
+          <input type="text" class="form-input" id="newClientName" placeholder="Smith Plumbing LLC">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Owner Name</label>
+          <input type="text" class="form-input" id="newClientOwner" placeholder="Jake Smith">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Industry / Trade *</label>
+          <select class="form-input form-select" id="newClientIndustry">
+            <option value="">Select industry...</option>
+            <option>Cabinets & Millwork</option>
+            <option>Plumbing</option>
+            <option>Electrical</option>
+            <option>HVAC</option>
+            <option>Roofing & Siding</option>
+            <option>General Contracting</option>
+            <option>Landscaping</option>
+            <option>Concrete & Excavation</option>
+            <option>Manufacturing</option>
+            <option>Agriculture</option>
+            <option>Retail</option>
+            <option>Professional Services</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Annual Revenue (est.)</label>
+          <select class="form-input form-select" id="newClientRevenue">
+            <option value="">Select range...</option>
+            <option>Under $500K</option>
+            <option>$500K – $1M</option>
+            <option>$1M – $2M</option>
+            <option>$2M – $5M</option>
+            <option>Over $5M</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Reporting Period</label>
+          <select class="form-input form-select" id="newClientPeriod">
+            <option>Last 6 months</option>
+            <option>Last 3 months</option>
+            <option>Last month</option>
+            <option>Year to date</option>
+            <option>Full year</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Retainer Amount</label>
+          <input type="text" class="form-input" id="newClientRetainer" placeholder="$2,000/month">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-input" id="newClientEmail" placeholder="owner@company.com">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-navy btn-sm" onclick="addClient()">Add Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOADING OVERLAY ═══ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <div class="loading-title" id="loadingTitle">Analyzing financials...</div>
+    <div class="loading-sub" id="loadingSub">Reading your QuickBooks data</div>
+  </div>
+</div>
+
+<!-- ═══ TOPBAR ═══ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <svg class="logo-mark" width="28" height="28" viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="8" fill="#1a3a5c"/>
+      <rect x="9" y="10" width="10" height="20" rx="1.5" fill="rgba(255,255,255,0.15)"/>
+      <rect x="21" y="10" width="10" height="20" rx="1.5" fill="rgba(255,255,255,0.15)"/>
+      <rect x="19" y="10" width="2" height="20" fill="#081528"/>
+      <polyline points="11,24 15,19 19,21 25,15 29,12" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="29" cy="12" r="2.2" fill="#2d86d4"/>
+    </svg>
+    <span class="app-name">ClearBooks</span>
+    <span class="app-tag">CFO Practice</span>
+  </div>
+  <div class="topbar-center">
+    <div class="active-client-pill" onclick="openModal()" id="clientPill">
+      <span class="no-client-text" id="pillText">No client selected — add or select one</span>
+      <svg class="pill-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-period" id="topbarPeriod">No period set</div>
+  </div>
+</div>
+
+<!-- ═══ SHELL ═══ -->
+<div class="shell">
+
+  <!-- CLIENT ROSTER SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-header-row">
+        <span class="sidebar-title">Client Roster</span>
+        <button class="btn-add-client" onclick="openModal()">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Add
+        </button>
+      </div>
+      <input type="text" class="client-search" id="clientSearch" placeholder="Search clients..." oninput="filterClients()">
+    </div>
+
+    <div class="client-list" id="clientList">
+      <div class="empty-roster" id="emptyRoster">
+        No clients yet. Click Add to create your first client.
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-stats">
+        <div class="sidebar-stat">
+          <div class="sidebar-stat-val" id="statTotal">0</div>
+          <div class="sidebar-stat-label">Total Clients</div>
+        </div>
+        <div class="sidebar-stat">
+          <div class="sidebar-stat-val" id="statActive">0</div>
+          <div class="sidebar-stat-label">Analyzed</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- SUB-NAV -->
+    <div class="subnav" id="subnav">
+      <div class="subnav-tab active" onclick="switchTab('dashboard')" id="tab-dashboard">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
+        Dashboard
+      </div>
+      <div class="subnav-tab" onclick="switchTab('upload')" id="tab-upload">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Upload Files
+      </div>
+      <div class="subnav-tab" onclick="switchTab('pdf')" id="tab-pdf">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M4 2h6l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3"/><path d="M10 2v4h4" stroke="currentColor" stroke-width="1.3"/></svg>
+        PDF Report
+      </div>
+      <div class="subnav-tab" onclick="switchTab('email')" id="tab-email">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" stroke="currentColor" stroke-width="1.3"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Email Draft
+      </div>
+      <div class="subnav-tab" onclick="switchTab('notes')" id="tab-notes">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 2h10v12H3z" stroke="currentColor" stroke-width="1.3"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Notes
+      </div>
+      <div class="subnav-right">
+        <button class="btn btn-accent btn-sm" onclick="runAI()" id="aiBtn" style="display:none;">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 4.5L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5z" fill="currentColor"/></svg>
+          Generate AI Summary
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content" id="mainContent">
+
+      <!-- WELCOME (no client selected) -->
+      <div class="view active" id="view-welcome">
+        <div class="welcome">
+          <div class="welcome-icon">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><path d="M6 28V8l10-5 10 5v20" stroke="#254d7a" stroke-width="1.5"/><rect x="12" y="18" width="8" height="10" stroke="#254d7a" stroke-width="1.3"/><rect x="9" y="12" width="4" height="4" stroke="#1a6eb5" stroke-width="1.2"/><rect x="19" y="12" width="4" height="4" stroke="#1a6eb5" stroke-width="1.2"/></svg>
+          </div>
+          <h2 class="welcome-title">Welcome to ClearBooks CFO</h2>
+          <p class="welcome-sub">Add your first client using the sidebar, or select an existing client to view their dashboard, upload files, generate reports, and draft emails.</p>
+          <button class="btn btn-navy" onclick="openModal()">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Add Your First Client
+          </button>
+        </div>
+      </div>
+
+      <!-- DASHBOARD VIEW -->
+      <div class="view" id="view-dashboard">
+        <div style="margin-bottom:20px;">
+          <div class="view-title" id="dashClientName">—</div>
+          <div class="view-sub" id="dashClientMeta">—</div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">6-Month Revenue</div><div class="kpi-value" id="d-rev">—</div><div class="kpi-delta neutral" id="d-rev-d">Upload files to populate</div><div class="kpi-bar" style="background:var(--accent);"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Gross Profit</div><div class="kpi-value" id="d-gp">—</div><div class="kpi-delta neutral" id="d-gp-d">—</div><div class="kpi-bar" style="background:var(--green);"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Outstanding AR</div><div class="kpi-value" id="d-ar">—</div><div class="kpi-delta neutral" id="d-ar-d">—</div><div class="kpi-bar" style="background:var(--red);"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Net Income</div><div class="kpi-value" id="d-ni">—</div><div class="kpi-delta neutral" id="d-ni-d">—</div><div class="kpi-bar" style="background:#92600a;"></div></div>
+        </div>
+
+        <!-- AI Card -->
+        <div class="ai-card full-col">
+          <div class="ai-label">AI Plain-English Analysis</div>
+          <div id="d-ai">
+            <div class="ai-placeholder">Upload files and generate AI summary to see your plain-English financial analysis here.</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Revenue Trend</div>
+            <div class="card-sub" id="d-chart-period">Monthly revenue</div>
+            <div class="chart-wrap" id="d-rev-chart-wrap">
+              <div class="await"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M4 20l5-7 4 5 5-7 5 9" stroke="#c4cdd6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><p>Revenue chart appears after file upload</p></div>
+              <canvas id="d-rev-chart" style="display:none;"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">AR Aging</div>
+            <div class="card-sub">Outstanding balances by age</div>
+            <div id="d-ar-table">
+              <div class="await" style="min-height:100px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#c4cdd6" stroke-width="1.3"/><path d="M12 8v4l3 2" stroke="#c4cdd6" stroke-width="1.3" stroke-linecap="round"/></svg><p>AR aging appears after upload</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Benchmarks + Expenses -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Industry Benchmarks</div>
+            <div class="card-sub" id="d-industry-label">vs. industry averages</div>
+            <div id="d-benchmarks">
+              <div class="await" style="min-height:100px;"><p>Benchmark comparison appears after upload</p></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Top Expenses</div>
+            <div class="card-sub">From your QuickBooks P&L</div>
+            <div id="d-expenses">
+              <div class="await" style="min-height:100px;"><p>Expense breakdown appears after upload</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPLOAD VIEW -->
+      <div class="view" id="view-upload">
+        <div class="upload-header-row">
+          <div class="view-title">Upload QuickBooks Files</div>
+          <div class="view-sub" id="upload-client-name">Select a client first</div>
+        </div>
+
+        <div class="upload-zones">
+          <div class="upload-zone" id="uz-pl" ondragover="dov(event,'uz-pl')" ondragleave="dlv('uz-pl')" ondrop="dop(event,'pl')">
+            <input type="file" class="file-input" accept=".csv,.xlsx,.xls" onchange="fc(event,'pl')">
+            <div class="zone-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="1.5"/><path d="M14 2v6h6M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+            <div class="zone-title">Profit & Loss</div>
+            <div class="zone-desc">P&L export, display columns by month</div>
+            <div class="zone-types">XLSX · XLS · CSV</div>
+            <div class="zone-file-name" id="uz-pl-name">File attached</div>
+          </div>
+          <div class="upload-zone" id="uz-bs" ondragover="dov(event,'uz-bs')" ondragleave="dlv('uz-bs')" ondrop="dop(event,'bs')">
+            <input type="file" class="file-input" accept=".csv,.xlsx,.xls" onchange="fc(event,'bs')">
+            <div class="zone-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 9h18M9 21V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+            <div class="zone-title">Balance Sheet</div>
+            <div class="zone-desc">As of your most recent month-end</div>
+            <div class="zone-types">XLSX · XLS · CSV</div>
+            <div class="zone-file-name" id="uz-bs-name">File attached</div>
+          </div>
+          <div class="upload-zone" id="uz-ar" ondragover="dov(event,'uz-ar')" ondragleave="dlv('uz-ar')" ondrop="dop(event,'ar')">
+            <input type="file" class="file-input" accept=".csv,.xlsx,.xls" onchange="fc(event,'ar')">
+            <div class="zone-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" stroke="currentColor" stroke-width="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+            <div class="zone-title">AR Aging Detail</div>
+            <div class="zone-desc">Who owes you and how long it's been</div>
+            <div class="zone-types">XLSX · XLS · CSV</div>
+            <div class="zone-file-name" id="uz-ar-name">File attached</div>
+          </div>
+        </div>
+
+        <div class="upload-action-row">
+          <button class="btn btn-navy" onclick="analyzeFiles()" id="analyzeBtn">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 4.5L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5z" fill="currentColor"/></svg>
+            Analyze with AI
+          </button>
+          <button class="btn btn-outline" onclick="loadSample()">Load sample data</button>
+          <span style="font-size:11.5px;color:#6b8097;">No files? Load sample data to see the full workflow.</span>
+        </div>
+
+        <div class="qb-instructions">
+          <div class="qb-instructions-title">HOW TO EXPORT FROM QUICKBOOKS ONLINE</div>
+          <div class="qb-steps">
+            <div class="qb-step">
+              <div class="qb-step-num">STEP 01 — P&L</div>
+              <div class="qb-step-title">Profit & Loss</div>
+              <div class="qb-step-desc">Reports → Profit and Loss → set date range → Display columns by Month → Export to Excel</div>
+            </div>
+            <div class="qb-step">
+              <div class="qb-step-num">STEP 02 — BALANCE SHEET</div>
+              <div class="qb-step-title">Balance Sheet</div>
+              <div class="qb-step-desc">Reports → Balance Sheet → As of last day of most recent month → Export to Excel</div>
+            </div>
+            <div class="qb-step">
+              <div class="qb-step-num">STEP 03 — AR AGING</div>
+              <div class="qb-step-title">AR Aging Detail</div>
+              <div class="qb-step-desc">Reports → Accounts Receivable Aging Detail → As of today → Export to Excel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF VIEW -->
+      <div class="view" id="view-pdf">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <div class="view-title">PDF Report</div>
+            <div class="view-sub">Print or save as PDF to send to your client</div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline" onclick="printReport()">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="6" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M5 6V3h6v3M5 10h2M5 12h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Print / Save as PDF
+            </button>
+          </div>
+        </div>
+        <div class="pdf-preview-wrap" id="pdfPreview">
+          <div class="pdf-toolbar">
+            <div class="pdf-dots">
+              <div class="pdf-dot" style="background:#ff5f56;"></div>
+              <div class="pdf-dot" style="background:#ffbd2e;"></div>
+              <div class="pdf-dot" style="background:#27c93f;"></div>
+            </div>
+            <span style="font-size:10.5px;color:#6b8097;" id="pdf-toolbar-label">Monthly CFO Report</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#6b8097;">PDF</span>
+          </div>
+          <div class="pdf-content" id="pdfContent">
+            <div class="await" style="min-height:280px;">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="6" y="4" width="24" height="28" rx="2" stroke="#c4cdd6" stroke-width="1.5"/><path d="M11 12h14M11 17h14M11 22h8" stroke="#c4cdd6" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <p>Analyze a client's files first, then the PDF report will appear here ready to print or save.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EMAIL VIEW -->
+      <div class="view" id="view-email">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <div class="view-title">Client Email Draft</div>
+            <div class="view-sub">AI-written summary ready to copy and send</div>
+          </div>
+          <button class="btn btn-navy" onclick="copyEmail()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="8" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3 11V3h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Copy to Clipboard
+          </button>
+        </div>
+        <div class="email-card" id="emailCard">
+          <div class="email-header">
+            <span class="email-header-label">Email Draft — Ready to Send</span>
+            <button class="btn btn-white btn-sm" onclick="copyEmail()">Copy all</button>
+          </div>
+          <div class="email-meta">
+            <div class="email-field"><span class="email-field-label">To:</span><span id="emailTo" style="font-size:13px;color:var(--navy);">—</span></div>
+            <div class="email-field"><span class="email-field-label">Subject:</span><span id="emailSubject" style="font-size:13px;color:var(--navy);">—</span></div>
+          </div>
+          <textarea class="email-body" id="emailBody" placeholder="Analyze a client's files first, then your AI-drafted email will appear here ready to edit and send."></textarea>
+        </div>
+      </div>
+
+      <!-- NOTES VIEW -->
+      <div class="view" id="view-notes">
+        <div style="margin-bottom:20px;">
+          <div class="view-title">CFO Notes</div>
+          <div class="view-sub" id="notes-client-name">Private advisor notes — saved locally per client</div>
+        </div>
+        <textarea class="notes-area" id="notesArea" placeholder="Add your notes for this client here — pricing observations, action items from the monthly call, follow-up questions, things to flag next month..."></textarea>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+          <div class="notes-meta" id="notesMeta">Notes auto-save as you type</div>
+          <button class="btn btn-navy btn-sm" onclick="saveNotes()">Save Notes</button>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<!-- ═══ JAVASCRIPT ═══ -->
+<script>
+// ─── State ─────────────────────────────────────────────────
+let clients = JSON.parse(localStorage.getItem('cb_clients') || '[]');
+let activeId = null;
+let fileCache = {};   // { clientId: { pl, bs, ar, textPL, textBS, textAR, result } }
+let revChart = null, charts = {};
+let activeTab = 'dashboard';
+
+// ─── Persist ───────────────────────────────────────────────
+function save() { localStorage.setItem('cb_clients', JSON.stringify(clients)); }
+
+function getClient(id) { return clients.find(c => c.id === id); }
+
+function getCache(id) {
+  if (!fileCache[id]) fileCache[id] = { pl:null, bs:null, ar:null, textPL:'', textBS:'', textAR:'', result:null };
+  return fileCache[id];
+}
+
+// ─── Client Roster ─────────────────────────────────────────
+function renderRoster(filter='') {
+  const list = document.getElementById('clientList');
+  const empty = document.getElementById('emptyRoster');
+  const filtered = clients.filter(c =>
+    c.name.toLowerCase().includes(filter.toLowerCase()) ||
+    c.industry.toLowerCase().includes(filter.toLowerCase())
+  );
+  empty.style.display = filtered.length ? 'none' : 'block';
+  // remove existing items
+  list.querySelectorAll('.client-item').forEach(el => el.remove());
+  filtered.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'client-item' + (c.id === activeId ? ' active' : '');
+    div.onclick = () => selectClient(c.id);
+    const cache = getCache(c.id);
+    const hasData = !!cache.result;
+    div.innerHTML = `
+      <div class="client-item-left">
+        <div class="client-item-name">${c.name}</div>
+        <div class="client-item-industry">${c.industry} · ${c.period}</div>
+      </div>
+      <div class="client-status-dot ${hasData ? 'dot-ready' : 'dot-pending'}"></div>
+    `;
+    list.appendChild(div);
+  });
+  document.getElementById('statTotal').textContent = clients.length;
+  document.getElementById('statActive').textContent = clients.filter(c => !!getCache(c.id).result).length;
+}
+
+function filterClients() { renderRoster(document.getElementById('clientSearch').value); }
+
+// ─── Modal ─────────────────────────────────────────────────
+function openModal() { document.getElementById('modalOverlay').classList.add('active'); setTimeout(()=>document.getElementById('newClientName').focus(),100); }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  ['newClientName','newClientOwner','newClientEmail','newClientRetainer'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('newClientIndustry').value = '';
+  document.getElementById('newClientRevenue').value = '';
+  document.getElementById('newClientPeriod').value = 'Last 6 months';
+}
+
+function addClient() {
+  const name = document.getElementById('newClientName').value.trim();
+  const industry = document.getElementById('newClientIndustry').value;
+  if (!name) { document.getElementById('newClientName').focus(); return; }
+  const client = {
+    id: Date.now().toString(),
+    name,
+    owner: document.getElementById('newClientOwner').value.trim(),
+    industry: industry || 'General Business',
+    revenue: document.getElementById('newClientRevenue').value,
+    period: document.getElementById('newClientPeriod').value,
+    retainer: document.getElementById('newClientRetainer').value,
+    email: document.getElementById('newClientEmail').value.trim(),
+    notes: '',
+    createdAt: new Date().toLocaleDateString()
+  };
+  clients.push(client);
+  save();
+  closeModal();
+  renderRoster();
+  selectClient(client.id);
+}
+
+// ─── Select Client ─────────────────────────────────────────
+function selectClient(id) {
+  activeId = id;
+  const c = getClient(id);
+  if (!c) return;
+
+  // topbar
+  document.getElementById('pillText').textContent = '';
+  const pill = document.getElementById('clientPill');
+  pill.innerHTML = `
+    <div style="display:flex;flex-direction:column;line-height:1.2;">
+      <span class="active-client-name">${c.name}</span>
+      <span class="active-client-industry">${c.industry}</span>
+    </div>
+    <svg class="pill-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+  `;
+  pill.onclick = openModal;
+  document.getElementById('topbarPeriod').textContent = c.period.toUpperCase();
+
+  // subnav AI button
+  document.getElementById('aiBtn').style.display = 'flex';
+
+  // hide welcome
+  document.getElementById('view-welcome').classList.remove('active');
+
+  // dashboard labels
+  document.getElementById('dashClientName').textContent = c.name;
+  document.getElementById('dashClientMeta').textContent = `${c.industry} · ${c.period} · Whatcom County, WA${c.retainer ? ' · ' + c.retainer : ''}`;
+  document.getElementById('d-chart-period').textContent = 'Monthly revenue — ' + c.period;
+  document.getElementById('d-industry-label').textContent = `vs. ${c.industry} industry averages`;
+
+  // upload label
+  document.getElementById('upload-client-name').textContent = `Uploading for: ${c.name} · ${c.industry}`;
+
+  // notes
+  document.getElementById('notes-client-name').textContent = `${c.name} — private advisor notes`;
+  document.getElementById('notesArea').value = c.notes || '';
+
+  // email
+  document.getElementById('emailTo').textContent = c.owner ? `${c.owner}, ${c.name}` : c.name;
+  document.getElementById('emailSubject').textContent = `${c.name} — ${c.period} Financial Summary`;
+
+  // if result exists, populate
+  const cache = getCache(id);
+  if (cache.result) {
+    populateDashboard(cache.result, c);
+  } else {
+    clearDashboard();
+  }
+
+  // render roster active state
+  renderRoster(document.getElementById('clientSearch').value);
+
+  // show dashboard tab
+  switchTab(activeTab === 'welcome' ? 'dashboard' : activeTab);
+  if (!document.getElementById('view-'+activeTab).classList.contains('active')) {
+    switchTab('dashboard');
+  }
+}
+
+// ─── Tab switching ──────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.subnav-tab').forEach(t => t.classList.remove('active'));
+  const view = document.getElementById('view-'+tab);
+  if (view) view.classList.add('active');
+  const tabEl = document.getElementById('tab-'+tab);
+  if (tabEl) tabEl.classList.add('active');
+}
+
+// ─── File handling ──────────────────────────────────────────
+function dov(e, id) { e.preventDefault(); document.getElementById(id).classList.add('dragging'); }
+function dlv(id) { document.getElementById(id).classList.remove('dragging'); }
+function dop(e, key) { e.preventDefault(); document.getElementById('uz-'+key).classList.remove('dragging'); const f = e.dataTransfer.files[0]; if (f) attachFile(key, f); }
+function fc(e, key) { const f = e.target.files[0]; if (f) attachFile(key, f); }
+
+function attachFile(key, file) {
+  if (!activeId) { alert('Please select or add a client first.'); return; }
+  const cache = getCache(activeId);
+  cache[key] = file;
+  const zone = document.getElementById('uz-'+key);
+  zone.classList.add('has-file');
+  document.getElementById('uz-'+key+'-name').textContent = file.name;
+}
+
+async function readFile(file) {
+  if (!file) return '';
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') return new Promise(r => { const fr = new FileReader(); fr.onload = e => r(e.target.result); fr.readAsText(file); });
+  if (ext === 'xlsx' || ext === 'xls') return new Promise(r => {
+    const fr = new FileReader();
+    fr.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'binary' });
+        let txt = '';
+        wb.SheetNames.forEach(n => { txt += `Sheet: ${n}\n` + XLSX.utils.sheet_to_csv(wb.Sheets[n]) + '\n\n'; });
+        r(txt);
+      } catch { r(''); }
+    };
+    fr.readAsBinaryString(file);
+  });
+  return '';
+}
+
+// ─── Analyze ───────────────────────────────────────────────
+async function analyzeFiles() {
+  if (!activeId) { alert('Select a client first.'); return; }
+  const cache = getCache(activeId);
+  if (!cache.pl && !cache.bs && !cache.ar) { alert('Upload at least one file, or click "Load sample data".'); return; }
+
+  showLoading('Reading files...', 'Extracting financial data from your QuickBooks exports');
+  cache.textPL = await readFile(cache.pl);
+  cache.textBS = await readFile(cache.bs);
+  cache.textAR = await readFile(cache.ar);
+  updateLoading('Sending to AI...', 'Analyzing against industry benchmarks');
+  await callAI(cache);
+}
+
+async function runAI() {
+  if (!activeId) { alert('Select a client first.'); return; }
+  const cache = getCache(activeId);
+  if (!cache.textPL && !cache.textBS && !cache.textAR) {
+    switchTab('upload');
+    return;
+  }
+  showLoading('Generating AI summary...', 'Building plain-English analysis');
+  await callAI(cache);
+}
+
+async function callAI(cache) {
+  const c = getClient(activeId);
+  const prompt = `You are a fractional CFO analyzing the financials for ${c.name}, a ${c.industry} business in Whatcom County, WA. Analyze the QuickBooks export data below and return a complete JSON financial analysis. Speak directly to the business owner in plain English. Be specific with dollar amounts. Flag real problems directly.
+
+COMPANY: ${c.name}
+INDUSTRY: ${c.industry}
+PERIOD: ${c.period}
+ESTIMATED REVENUE: ${c.revenue || 'Unknown'}
+
+--- PROFIT & LOSS ---
+${cache.textPL || '[Not uploaded]'}
+
+--- BALANCE SHEET ---
+${cache.textBS || '[Not uploaded]'}
+
+--- AR AGING ---
+${cache.textAR || '[Not uploaded]'}
+
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "revenue_total": "$X,XXX",
+  "revenue_note": "one plain-English sentence",
+  "gross_profit": "$X,XXX",
+  "gross_margin_pct": "XX%",
+  "gross_margin_note": "one sentence comparing to industry benchmark",
+  "ar_total": "$X,XXX",
+  "ar_note": "one sentence flagging risk",
+  "net_income": "$X,XXX",
+  "net_margin_pct": "XX%",
+  "net_income_note": "one sentence",
+  "ai_intro": "3-4 sentences of plain-English executive summary — direct, specific, honest, speak to the owner",
+  "concerns": ["concern 1 with $ amount", "concern 2", "concern 3"],
+  "wins": ["win 1", "win 2"],
+  "actions": ["action 1 — specific and do-this-week", "action 2", "action 3"],
+  "monthly_revenue": [
+    {"month":"Oct","value":0},{"month":"Nov","value":0},{"month":"Dec","value":0},
+    {"month":"Jan","value":0},{"month":"Feb","value":0},{"month":"Mar","value":0}
+  ],
+  "ar_items": [
+    {"customer":"Name","days":"X days","amount":"$X,XXX","risk":"low|medium|high"}
+  ],
+  "expenses": [
+    {"category":"Name","amount":"$X,XXX","pct_rev":"XX%"}
+  ],
+  "benchmarks": [
+    {"label":"Gross Margin","yours":"XX%","industry":"35–45%","flag":"good|warn|bad"},
+    {"label":"Net Margin","yours":"XX%","industry":"8–14%","flag":"good|warn|bad"},
+    {"label":"AR Days Outstanding","yours":"XX days","industry":"<35 days","flag":"good|warn|bad"},
+    {"label":"Labor % of Revenue","yours":"XX%","industry":"25–35%","flag":"good|warn|bad"}
+  ],
+  "email_body": "A professional 180-word email from the CFO to the business owner summarizing this period. Mention 2 specific numbers. List 3 action items. Sign off as 'Your ClearBooks CFO Team'. Address the owner by company name."
+}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    const raw = data.content.map(b => b.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    cache.result = JSON.parse(clean);
+  } catch (err) {
+    cache.result = getFallback(c);
+  }
+
+  hideLoading();
+  populateDashboard(cache.result, c);
+  buildPDF(cache.result, c);
+  buildEmail(cache.result, c);
+  renderRoster(document.getElementById('clientSearch').value);
+  switchTab('dashboard');
+}
+
+// ─── Sample Data ────────────────────────────────────────────
+function loadSample() {
+  if (!activeId) { alert('Select a client first.'); return; }
+  const c = getClient(activeId);
+  const cache = getCache(activeId);
+  cache.textPL = `${c.name} Profit & Loss\n,Oct,Nov,Dec,Jan,Feb,Mar\nTotal Revenue,53200,48000,56000,45400,61300,66200\nCOGS,33000,29700,34700,28000,38000,41000\nGross Profit,20200,18300,21300,17400,23300,25200\nTotal OpEx,11350,10850,12150,10550,11350,11850\nNet Income,8850,7450,9150,6850,11950,13350\nLabor,16000,14400,16800,13600,18400,19900\nMaterials,14900,13400,15700,12700,17200,18500`;
+  cache.textAR = `AR Aging Detail\nCustomer,Days Out,Amount\nCascade Custom Homes,16,14800\nBellingham Builders,23,9200\nSummit Property Group,45,11400\nPacific NW Remodel,62,7800\nFerndale Kitchen Bath,80,4200`;
+  cache.textBS = `Balance Sheet\nCash,28400\nAccounts Receivable,49500\nInventory,18200\nTotal Assets,130100\nTotal Liabilities,35000\nOwner Equity,95100`;
+  ['pl','bs','ar'].forEach(k => {
+    document.getElementById('uz-'+k).classList.add('has-file');
+    document.getElementById('uz-'+k+'-name').textContent = 'Sample data loaded';
+  });
+}
+
+// ─── Dashboard population ────────────────────────────────────
+function populateDashboard(r, c) {
+  setText('d-rev', r.revenue_total);
+  setDelta('d-rev-d', r.revenue_note, 'neutral');
+  setText('d-gp', r.gross_profit + (r.gross_margin_pct && r.gross_margin_pct !== '—' ? ' (' + r.gross_margin_pct + ')' : ''));
+  setDelta('d-gp-d', r.gross_margin_note, 'up');
+  setText('d-ar', r.ar_total);
+  setDelta('d-ar-d', r.ar_note, 'down');
+  setText('d-ni', r.net_income + (r.net_margin_pct && r.net_margin_pct !== '—' ? ' (' + r.net_margin_pct + ')' : ''));
+  setDelta('d-ni-d', r.net_income_note, 'up');
+
+  // AI
+  const ai = document.getElementById('d-ai');
+  ai.innerHTML = `
+    <div class="ai-intro">${r.ai_intro}</div>
+    <div class="ai-blocks">
+      <div class="ai-block"><div class="ai-block-title">Concerns</div><div class="ai-block-text">${(r.concerns||[]).map(x=>'<p style="margin-bottom:6px;">'+x+'</p>').join('')}</div></div>
+      <div class="ai-block"><div class="ai-block-title">Wins</div><div class="ai-block-text">${(r.wins||[]).map(x=>'<p style="margin-bottom:6px;">'+x+'</p>').join('')}</div></div>
+      <div class="ai-block"><div class="ai-block-title">Action Items</div><div class="ai-block-text">${(r.actions||[]).map((x,i)=>'<p style="margin-bottom:6px;">'+(i+1)+'. '+x+'</p>').join('')}</div></div>
+    </div>
+  `;
+
+  // Revenue chart
+  const months = (r.monthly_revenue||[]).map(m=>m.month);
+  const vals = (r.monthly_revenue||[]).map(m=>m.value);
+  if (vals.some(v=>v>0)) {
+    const wrap = document.getElementById('d-rev-chart-wrap');
+    wrap.querySelector('.await')?.remove();
+    const canvas = document.getElementById('d-rev-chart');
+    canvas.style.display = 'block';
+    if (charts.rev) charts.rev.destroy();
+    charts.rev = new Chart(canvas, {
+      type:'bar',
+      data:{ labels:months, datasets:[{ label:'Revenue', data:vals, backgroundColor:'rgba(15,35,64,0.12)', borderColor:'rgba(15,35,64,0.7)', borderWidth:1.5, borderRadius:5 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString()}}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'IBM Plex Mono',size:9},color:'#6b8097'}}, y:{grid:{color:'rgba(15,35,64,0.04)'},ticks:{font:{family:'IBM Plex Mono',size:9},color:'#6b8097',callback:v=>'$'+(v/1000).toFixed(0)+'k'}} } }
+    });
+  }
+
+  // AR table
+  if (r.ar_items && r.ar_items.length) {
+    document.getElementById('d-ar-table').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>Customer</th><th>Age</th><th>Amount</th><th>Risk</th></tr></thead>
+        <tbody>${r.ar_items.map(a=>`<tr><td style="font-weight:500;">${a.customer}</td><td style="font-family:'IBM Plex Mono',monospace;color:#6b8097;font-size:11.5px;">${a.days}</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;">${a.amount}</td><td><span class="pill ${a.risk==='high'?'pill-red':a.risk==='medium'?'pill-amber':'pill-green'}">${a.risk}</span></td></tr>`).join('')}</tbody>
+      </table>`;
+  }
+
+  // Benchmarks
+  if (r.benchmarks && r.benchmarks.length) {
+    document.getElementById('d-benchmarks').innerHTML = r.benchmarks.map(b=>`
+      <div class="benchmark-row">
+        <span class="b-label">${b.label}</span>
+        <div class="b-right">
+          <span class="b-yours">${b.yours}</span>
+          <span class="b-industry">vs ${b.industry}</span>
+          <span class="b-flag ${b.flag==='good'?'flag-good':b.flag==='bad'?'flag-bad':'flag-warn'}">${b.flag==='good'?'On Track':b.flag==='bad'?'Below':'Review'}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  // Expenses
+  if (r.expenses && r.expenses.length) {
+    document.getElementById('d-expenses').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>Category</th><th>Amount</th><th>% Rev</th></tr></thead>
+        <tbody>${r.expenses.map(e=>`<tr><td style="font-weight:500;">${e.category}</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;">${e.amount}</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#6b8097;">${e.pct_rev}</td></tr>`).join('')}</tbody>
+      </table>`;
+  }
+}
+
+function clearDashboard() {
+  ['d-rev','d-gp','d-ar','d-ni'].forEach(id => setText(id,'—'));
+  ['d-rev-d','d-gp-d','d-ar-d','d-ni-d'].forEach(id => setDelta(id,'Upload files to populate','neutral'));
+  document.getElementById('d-ai').innerHTML = '<div class="ai-placeholder">Upload files and generate AI summary to see your plain-English financial analysis here.</div>';
+}
+
+// ─── PDF ────────────────────────────────────────────────────
+function buildPDF(r, c) {
+  document.getElementById('pdf-toolbar-label').textContent = `${c.name} — ${c.period} CFO Report`;
+  const arRows = (r.ar_items||[]).map(a=>`<tr><td>${a.customer}</td><td>${a.days}</td><td>${a.amount}</td><td class="pdf-risk-${a.risk==='high'?'high':a.risk==='medium'?'med':'low'}">${a.risk.charAt(0).toUpperCase()+a.risk.slice(1)}</td></tr>`).join('');
+  document.getElementById('pdfContent').innerHTML = `
+    <div class="pdf-header">
+      <div><div class="pdf-co-name">${c.name}</div><div class="pdf-co-period">CFO Report — ${c.period} · Whatcom County, WA</div></div>
+      <div class="pdf-brand"><div class="pdf-brand-name">ClearBooks</div><div class="pdf-brand-tag">CFO Services · Bellingham, WA</div></div>
+    </div>
+    <div class="pdf-kpis">
+      <div class="pdf-kpi"><div class="pdf-kpi-l">Revenue</div><div class="pdf-kpi-v">${r.revenue_total}</div><div class="pdf-kpi-d up">${r.revenue_note}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-l">Gross Profit</div><div class="pdf-kpi-v">${r.gross_profit}</div><div class="pdf-kpi-d">${r.gross_margin_pct} margin</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-l">AR Outstanding</div><div class="pdf-kpi-v">${r.ar_total}</div><div class="pdf-kpi-d down">${r.ar_note}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-l">Net Income</div><div class="pdf-kpi-v">${r.net_income}</div><div class="pdf-kpi-d">${r.net_margin_pct} margin</div></div>
+    </div>
+    <div class="pdf-section-title">CFO Summary — Plain English</div>
+    <div class="pdf-narrative">${r.ai_intro}</div>
+    <div class="pdf-two">
+      <div class="pdf-box"><div class="pdf-box-t">Top Concerns</div>${(r.concerns||[]).map(x=>`<div class="pdf-item">${x}</div>`).join('')}</div>
+      <div class="pdf-box"><div class="pdf-box-t">Action Items This Month</div>${(r.actions||[]).map((x,i)=>`<div class="pdf-item">${i+1}. ${x}</div>`).join('')}</div>
+    </div>
+    ${arRows ? `<div class="pdf-section-title">AR Aging Report</div><table class="pdf-table"><thead><tr><th>Customer</th><th>Days Outstanding</th><th>Amount</th><th>Risk</th></tr></thead><tbody>${arRows}</tbody></table>` : ''}
+    <div class="pdf-footer"><span>Prepared by ClearBooks CFO Services · Bellingham, WA · clearbookscfo.com</span><span>Confidential — ${c.name} · ${c.period}</span></div>
+  `;
+}
+
+function printReport() {
+  const content = document.getElementById('pdfContent').innerHTML;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"><style>
+    :root{--navy:#0f2340;--accent:#1a6eb5;}
+    *{margin:0;padding:0;box-sizing:border-box;}body{font-family:'DM Sans',sans-serif;color:#0f2340;padding:40px;font-size:11.5px;line-height:1.6;}
+    .pdf-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #0f2340;}
+    .pdf-co-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#0f2340;}
+    .pdf-co-period{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#6b8097;margin-top:2px;}
+    .pdf-brand-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#0f2340;text-align:right;}
+    .pdf-brand-tag{font-size:9px;color:#6b8097;letter-spacing:1px;text-transform:uppercase;text-align:right;}
+    .pdf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+    .pdf-kpi{background:#f2f5f9;border-radius:5px;padding:10px 12px;}
+    .pdf-kpi-l{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#6b8097;margin-bottom:3px;}
+    .pdf-kpi-v{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;line-height:1;}
+    .pdf-kpi-d{font-size:8.5px;margin-top:2px;color:#6b8097;}
+    .pdf-section-title{font-family:'Playfair Display',serif;font-size:12px;font-weight:700;padding-bottom:5px;border-bottom:2px solid #1a6eb5;margin:14px 0 9px;}
+    .pdf-narrative{background:#f2f5f9;border-left:3px solid #0f2340;padding:11px 13px;border-radius:0 5px 5px 0;font-size:10.5px;line-height:1.7;color:#4a5568;margin-bottom:12px;}
+    .pdf-two{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:12px;}
+    .pdf-box{background:#f2f5f9;border-radius:5px;padding:11px 13px;}
+    .pdf-box-t{font-size:7.5px;letter-spacing:1.5px;text-transform:uppercase;color:#0f2340;font-weight:700;margin-bottom:7px;}
+    .pdf-item{font-size:10px;color:#4a5568;padding:3px 0;border-bottom:1px solid #e8edf5;display:flex;gap:5px;line-height:1.4;}
+    .pdf-item::before{content:'–';color:#1a6eb5;flex-shrink:0;}
+    .pdf-item:last-child{border-bottom:none;}
+    .pdf-table{width:100%;border-collapse:collapse;font-size:10px;margin-top:8px;}
+    .pdf-table th{background:#0f2340;color:#fff;padding:5px 8px;text-align:left;font-size:7.5px;letter-spacing:0.8px;text-transform:uppercase;}
+    .pdf-table td{padding:6px 8px;border-bottom:1px solid #e8edf5;}
+    .pdf-table tr:nth-child(even) td{background:#f2f5f9;}
+    .pdf-risk-high{color:#8c2020;font-weight:700;}.pdf-risk-med{color:#92600a;font-weight:600;}.pdf-risk-low{color:#1a6b3a;font-weight:600;}
+    .pdf-footer{margin-top:18px;padding-top:10px;border-top:1px solid #e8edf5;display:flex;justify-content:space-between;font-size:8px;color:#6b8097;}
+    @media print{body{padding:20px;}}
+  </style></head><body>${content}</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+// ─── Email ───────────────────────────────────────────────────
+function buildEmail(r, c) {
+  document.getElementById('emailTo').textContent = c.owner ? `${c.owner}, ${c.name}` : c.name;
+  document.getElementById('emailSubject').textContent = `${c.name} — ${c.period} Financial Summary`;
+  document.getElementById('emailBody').value = r.email_body || '';
+}
+
+function copyEmail() {
+  const subj = document.getElementById('emailSubject').textContent;
+  const body = document.getElementById('emailBody').value;
+  navigator.clipboard.writeText(`Subject: ${subj}\n\n${body}`).then(() => {
+    const btn = event.target.closest('.btn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = 'Copied!';
+    setTimeout(() => btn.innerHTML = orig, 1500);
+  });
+}
+
+// ─── Notes ───────────────────────────────────────────────────
+function saveNotes() {
+  if (!activeId) return;
+  const c = getClient(activeId);
+  c.notes = document.getElementById('notesArea').value;
+  save();
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = 'Saved';
+  btn.style.background = '#1a6b3a';
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1400);
+}
+
+// Auto-save notes as you type
+document.getElementById('notesArea').addEventListener('input', () => {
+  if (!activeId) return;
+  const c = getClient(activeId);
+  c.notes = document.getElementById('notesArea').value;
+  save();
+});
+
+// ─── Helpers ─────────────────────────────────────────────────
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val || '—'; }
+function setDelta(id, val, dir) { const el = document.getElementById(id); if (!el) return; el.textContent = val || ''; el.className = 'kpi-delta ' + dir; }
+
+function showLoading(title, sub) {
+  document.getElementById('loadingTitle').textContent = title;
+  document.getElementById('loadingSub').textContent = sub;
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+function updateLoading(title, sub) {
+  document.getElementById('loadingTitle').textContent = title;
+  document.getElementById('loadingSub').textContent = sub;
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+function getFallback(c) {
+  return {
+    revenue_total:'Upload files', revenue_note:'Upload your P&L to see real revenue.',
+    gross_profit:'—', gross_margin_pct:'—', gross_margin_note:'Upload to compare against industry benchmarks.',
+    ar_total:'—', ar_note:'Upload AR aging to see customer balances.',
+    net_income:'—', net_margin_pct:'—', net_income_note:'Upload files to see net income.',
+    ai_intro:`Your ${c.name} dashboard is set up and ready. Upload your QuickBooks P&L, Balance Sheet, and AR Aging exports and click "Analyze with AI" to get a complete plain-English financial analysis.`,
+    concerns:['Upload your P&L to identify margin issues','Upload AR aging to find overdue balances'],
+    wins:['Dashboard configured for '+c.industry,'Client profile saved to your roster'],
+    actions:['Export P&L from QuickBooks (Reports → P&L → date range → Display by Month → Export)','Export AR Aging Detail','Upload files and analyze'],
+    monthly_revenue:[{month:'Oct',value:0},{month:'Nov',value:0},{month:'Dec',value:0},{month:'Jan',value:0},{month:'Feb',value:0},{month:'Mar',value:0}],
+    ar_items:[], expenses:[],
+    benchmarks:[
+      {label:'Gross Margin',yours:'—',industry:'35–45%',flag:'warn'},
+      {label:'Net Margin',yours:'—',industry:'8–14%',flag:'warn'},
+      {label:'AR Days Outstanding',yours:'—',industry:'<35 days',flag:'warn'},
+      {label:'Labor % of Revenue',yours:'—',industry:'25–35%',flag:'warn'}
+    ],
+    email_body:`Hi ${c.owner || 'there'},\n\nYour ${c.name} financial review is ready. Please upload your QuickBooks exports so we can complete the analysis.\n\nYour ClearBooks CFO Team`
+  };
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── Init ────────────────────────────────────────────────────
+// Pre-load K&S Woodworks if no clients exist yet
+if (clients.length === 0) {
+  clients.push({
+    id: 'ks-woodworks',
+    name: 'K&S Woodworks',
+    owner: '',
+    industry: 'Cabinets & Millwork',
+    revenue: '$500K – $1M',
+    period: 'Last 6 months',
+    retainer: '',
+    email: '',
+    notes: '',
+    createdAt: new Date().toLocaleDateString()
+  });
+  save();
+}
+
+renderRoster();
+// Auto-select K&S Woodworks on first load
+const ks = clients.find(c => c.id === 'ks-woodworks') || clients[0];
+if (ks) selectClient(ks.id);
+
+// Close modal on overlay click
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+</script>
+</body>
+</html>
