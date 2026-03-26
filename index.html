@@ -1207,17 +1207,17 @@ footer{background:var(--navy-deep);padding:64px 0 32px;color:rgba(255,255,255,0.
         <span class="section-eyebrow">Contact</span>
         <h2 class="section-title" style="margin-bottom:8px;">Let's look at<br><em>your numbers.</em></h2>
         <p style="font-size:14px;color:var(--ink-mid);margin-bottom:32px;line-height:1.7;">Fill out the form and we will reach out within one business day to schedule your free first report. No sales pitch — just a conversation about your business.</p>
-        <form onsubmit="handleForm(event)" novalidate>
+        <form action="https://formspree.io/f/maqlydaz" method="POST" onsubmit="handleForm(event)">
           <div class="form-grid-2">
-            <div class="form-group"><label class="form-label">First Name</label><input type="text" class="form-input" placeholder="Jake" required></div>
-            <div class="form-group"><label class="form-label">Last Name</label><input type="text" class="form-input" placeholder="Smith" required></div>
+            <div class="form-group"><label class="form-label">First Name</label><input type="text" name="first_name" class="form-input" placeholder="Jake" required></div>
+            <div class="form-group"><label class="form-label">Last Name</label><input type="text" name="last_name" class="form-input" placeholder="Smith" required></div>
           </div>
-          <div class="form-group"><label class="form-label">Business Name</label><input type="text" class="form-input" placeholder="Smith Plumbing LLC" required></div>
-          <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" placeholder="jake@smithplumbing.com" required></div>
-          <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" placeholder="(360) 555-0100"></div>
+          <div class="form-group"><label class="form-label">Business Name</label><input type="text" name="business_name" class="form-input" placeholder="Smith Plumbing LLC" required></div>
+          <div class="form-group"><label class="form-label">Email</label><input type="email" name="email" class="form-input" placeholder="jake@smithplumbing.com" required></div>
+          <div class="form-group"><label class="form-label">Phone</label><input type="tel" name="phone" class="form-input" placeholder="(360) 555-0100"></div>
           <div class="form-group">
             <label class="form-label">Trade or Business Type</label>
-            <select class="form-input form-select">
+            <select name="trade_type" class="form-input form-select">
               <option value="">Select your trade...</option>
               <option>Plumbing</option><option>Electrical</option><option>HVAC</option>
               <option>Roofing and Siding</option><option>General Contracting</option>
@@ -1227,7 +1227,7 @@ footer{background:var(--navy-deep);padding:64px 0 32px;color:rgba(255,255,255,0.
           </div>
           <div class="form-group">
             <label class="form-label">Annual Revenue (approximate)</label>
-            <select class="form-input form-select">
+            <select name="annual_revenue" class="form-input form-select">
               <option value="">Select range...</option>
               <option>Under $500K</option><option>$500K – $1M</option>
               <option>$1M – $3M</option><option>$3M – $7M</option>
@@ -1236,7 +1236,7 @@ footer{background:var(--navy-deep);padding:64px 0 32px;color:rgba(255,255,255,0.
           </div>
           <div class="form-group">
             <label class="form-label">Biggest Financial Challenge (optional)</label>
-            <textarea class="form-input form-textarea" placeholder="Cash flow is always tight, I don't know which jobs are making money, taxes are always a surprise..."></textarea>
+            <textarea name="message" class="form-input form-textarea" placeholder="Cash flow is always tight, I don't know which jobs are making money, taxes are always a surprise..."></textarea>
           </div>
           <button type="submit" class="btn-navy" id="formBtn" style="width:100%;justify-content:center;font-size:15px;padding:15px;">
             Request Free Report
@@ -1363,15 +1363,30 @@ function toggleFAQ(btn){
   document.querySelectorAll('.faq-item.open').forEach(i=>i.classList.remove('open'));
   if(!open)item.classList.add('open');
 }
-function handleForm(e){
+async function handleForm(e){
   e.preventDefault();
+  const form=e.target;
   const btn=document.getElementById('formBtn');
   btn.disabled=true;
   btn.textContent='Sending...';
-  setTimeout(()=>{
-    btn.textContent='Request received — we will be in touch within 1 business day';
-    btn.style.background='#1a6b3a';
-  },1200);
+  try{
+    const res=await fetch('https://formspree.io/f/maqlydaz',{
+      method:'POST',
+      body:new FormData(form),
+      headers:{Accept:'application/json'}
+    });
+    if(res.ok){
+      btn.textContent='Request received — we will be in touch within 1 business day';
+      btn.style.background='#1a6b3a';
+      form.reset();
+    } else {
+      throw new Error('Server error');
+    }
+  } catch(err){
+    btn.disabled=false;
+    btn.textContent='Something went wrong — please email hello@northsoundcfo.com';
+    btn.style.background='#8c2020';
+  }
 }
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
